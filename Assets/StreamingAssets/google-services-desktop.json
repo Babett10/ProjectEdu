@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "140277119279",
+    "firebase_url": "https://educationalgamekids-9119b-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "educationalgamekids-9119b",
+    "storage_bucket": "educationalgamekids-9119b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140277119279:android:26e1e4e2dccc2b0f9d49da",
+        "android_client_info": {
+          "package_name": "com.iss.firebaseeducationgame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTO5GsL18-rng3adLw8vQO7edkSaMCrvk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
