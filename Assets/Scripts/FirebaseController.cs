@@ -17,13 +17,11 @@ public class FirebaseController : MonoBehaviour
     public TMP_InputField loginEmail, loginPassword;
     public TMP_InputField signupEmail, signupPassword, signupCPassword, signupUsername;
     public TMP_InputField forgetPassEmail;
+    public TMP_Dropdown kelasDropDown;
 
     [Header("Text UI")]
     public TMP_Text notif_Title_Text, notif_Message_Text;
     public TMP_Text profileUserName_Text, profileUserEmail_Text;
-
-    [Header("Other")]
-    public Toggle rememberMe;
 
     FirebaseAuth auth;
     FirebaseUser user;
@@ -54,6 +52,7 @@ public class FirebaseController : MonoBehaviour
         if (user != null)
         {
             Debug.Log("User masih login: " + user.Email);
+            CheckUserRoleAndRedirect(user.UserId);
             SceneManager.LoadScene("MainMenu");
         }
         else
@@ -103,10 +102,17 @@ public class FirebaseController : MonoBehaviour
         string password = signupPassword.text.Trim();
         string confirm = signupCPassword.text.Trim();
         string username = signupUsername.text.Trim();
+        string kelas = kelasDropDown.options[kelasDropDown.value].text;
 
         if (email == "" || password == "" || confirm == "" || username == "")
         {
             ShowNotification("Error", "Semua field wajib diisi.");
+            return;
+        }
+
+        if (kelasDropDown.value == 0)
+        {
+            ShowNotification("Error", "Silahkan pilih kelas");
             return;
         }
 
@@ -136,8 +142,7 @@ public class FirebaseController : MonoBehaviour
             user.UpdateUserProfileAsync(profile).ContinueWithOnMainThread(profileTask =>
             {
                 string uid = user.UserId;
-                DBreference.Child("Users").Child(uid).Child("username").SetValueAsync(username);
-                DBreference.Child("Users").Child(uid).Child("email").SetValueAsync(email);
+                SaveUserData(uid, username, email, kelas, "siswa");
                 ShowNotification("Success", "Register berhasil!");
                 OpenLoginPanel();
             });
@@ -170,9 +175,45 @@ public class FirebaseController : MonoBehaviour
 
             user.ReloadAsync().ContinueWithOnMainThread(reloadTask =>
             {
-                SceneManager.LoadScene("MainMenu");
+                CheckUserRoleAndRedirect(user.UserId);
             });
         });
+    }
+
+    void CheckUserRoleAndRedirect(string uid)
+    {
+        DBreference.Child("Users").Child(uid).Child("role").GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted || !task.IsCompleted)
+            {
+                ShowNotification("Error", "Gagal mengambil data role.");
+                return;
+            }
+
+            DataSnapshot snapshot = task.Result;
+
+            // Jika data role ada di database
+            if (snapshot.Exists && snapshot.Value != null)
+            {
+                string role = snapshot.Value.ToString();
+
+                if (role == "guru")
+                {
+                    Debug.Log("Login sebagai Guru");
+                    SceneManager.LoadScene("MainMenu");
+                }
+                else
+                {
+                    Debug.Log("Login sebagai Siswa");
+                    SceneManager.LoadScene("MainMenu");
+                }
+            }
+            else
+            {
+                SceneManager.LoadScene("MainMenu");
+            }
+        });
+
     }
 
     //Profile
@@ -233,32 +274,14 @@ public class FirebaseController : MonoBehaviour
     }
 
     //SaveUserData
-    void SaveUserData(string uid, string username, string email)
+    void SaveUserData(string uid, string username, string email, string kelas, string role)
     {
         DBreference.Child("Users").Child(uid).Child("username").SetValueAsync(username);
         DBreference.Child("Users").Child(uid).Child("email").SetValueAsync(email);
+        DBreference.Child("Users").Child(uid).Child("kelas").SetValueAsync(kelas);
+        DBreference.Child("Users").Child(uid).Child("role").SetValueAsync(role);
+
         DBreference.Child("Users").Child(uid).Child("level").SetValueAsync(1);
         DBreference.Child("Users").Child(uid).Child("gold").SetValueAsync(0);
-    }
-
-    //Load User Data
-    void LoadUserData()
-    {
-        DBreference.Child("Users").Child(user.UserId)
-        .GetValueAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted)
-            {
-                DataSnapshot snapshot = task.Result;
-
-                string username = snapshot.Child("username").Value.ToString();
-                string email = snapshot.Child("email").Value.ToString();
-
-                profileUserName_Text.text = username;
-                profileUserEmail_Text.text = email;
-
-                OpenProfilePanel();
-            }
-        });
     }
 }

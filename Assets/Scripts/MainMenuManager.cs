@@ -1,16 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
+using Firebase;
 using Firebase.Auth;
 using Firebase.Database;
 using Firebase.Extensions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class MainMenuManager : MonoBehaviour
 {
     public GameObject profilePanel;
     public TMP_Text usernameText;
     public TMP_Text emailText;
+    public TMP_Text kelasText;
+
+    public GameObject teacherPageButton;
 
     FirebaseAuth auth;
     DatabaseReference DBreference;
@@ -21,6 +27,29 @@ public class MainMenuManager : MonoBehaviour
         DBreference = FirebaseDatabase.DefaultInstance.RootReference;
 
         profilePanel.SetActive(false);
+        LoadUserData();
+    }
+
+    void LoadUserData()
+    {
+        FirebaseUser user = auth.CurrentUser;
+        DBreference.Child("Users").Child(user.UserId)
+        .GetValueAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                DataSnapshot snapshot = task.Result;
+                string role = snapshot.Child("role").Value.ToString();
+                if (role == "guru")
+                {
+                    teacherPageButton.SetActive(true);
+                }
+                else
+                {
+                    teacherPageButton.SetActive(false);
+                }
+            }
+        });
     }
 
     public void OpenProfile()
@@ -46,6 +75,7 @@ public class MainMenuManager : MonoBehaviour
                 {
                     usernameText.text = snapshot.Child("username").Value.ToString();
                     emailText.text = snapshot.Child("email").Value.ToString();
+                    kelasText.text = snapshot.Child("kelas").Value.ToString();
                 }
             }
             else
@@ -63,6 +93,11 @@ public class MainMenuManager : MonoBehaviour
     public void Logout()
     {
         auth.SignOut();
-        UnityEngine.SceneManagement.SceneManager.LoadScene("FirebaseAuth");
+        SceneManager.LoadScene("FirebaseAuth");
+    }
+
+    public void TeacherPage()
+    {
+        SceneManager.LoadScene("TeacherPage");
     }
 }
