@@ -7,6 +7,7 @@ public class QuizManager : MonoBehaviour
 {
     [Header("UI")]
     public TMP_Text questionText;
+    public TMP_Text resultText;
 
     public Button[] answerButtons;
     public TMP_Text[] answerTexts;
@@ -27,20 +28,24 @@ public class QuizManager : MonoBehaviour
         ShowQuestion();
     }
 
+    // 🔄 Reset quiz
     public void ResetQuiz()
-{
-    currentQuestionIndex = 0;
-    score = 0;
-
-    ShuffleQuestions();
-
-    foreach (Button btn in answerButtons)
     {
-        btn.gameObject.SetActive(true);
-    }
+        currentQuestionIndex = 0;
+        score = 0;
 
-    ShowQuestion();
-}
+        ShuffleQuestions();
+
+        foreach (Button btn in answerButtons)
+        {
+            btn.gameObject.SetActive(true);
+            btn.interactable = true;
+        }
+
+        resultText.text = "";
+
+        ShowQuestion();
+    }
 
     // 🔥 Dummy data sementara
     void LoadDummyQuestions()
@@ -116,7 +121,7 @@ public class QuizManager : MonoBehaviour
         });
     }
 
-    // 🔥 Random urutan soal
+    // 🔀 Random urutan soal
     void ShuffleQuestions()
     {
         for (int i = 0; i < questions.Count; i++)
@@ -129,6 +134,7 @@ public class QuizManager : MonoBehaviour
         }
     }
 
+    // 📌 Tampilkan soal
     void ShowQuestion()
     {
         // Quiz selesai
@@ -141,9 +147,12 @@ public class QuizManager : MonoBehaviour
         QuestionData q = questions[currentQuestionIndex];
 
         questionText.text = q.question;
+        resultText.text = "";
 
         for (int i = 0; i < answerButtons.Length; i++)
         {
+            answerButtons[i].interactable = true;
+
             answerTexts[i].text = q.answers[i];
 
             int index = i;
@@ -153,26 +162,60 @@ public class QuizManager : MonoBehaviour
         }
     }
 
+    // ✅ Cek jawaban
     void CheckAnswer(int selectedIndex)
     {
         QuestionData q = questions[currentQuestionIndex];
 
-        // Tambah score kalau benar
+        // Disable tombol biar ga spam klik
+        foreach (Button btn in answerButtons)
+        {
+            btn.interactable = false;
+        }
+
+        // Jawaban benar
         if (selectedIndex == q.correctAnswer)
         {
             score++;
+
+            resultText.text = "Benar!";
+            resultText.color = Color.green;
+        }
+        else
+        {
+            resultText.text = "Salah!";
+            resultText.color = Color.red;
         }
 
-        // Next soal
+        // Delay lanjut soal
+        Invoke(nameof(NextQuestion), 1.2f);
+    }
+
+    // ➡️ Soal berikutnya
+    void NextQuestion()
+    {
         currentQuestionIndex++;
         ShowQuestion();
     }
 
+    // 🏁 Quiz selesai
     void FinishQuiz()
     {
         questionText.text =
             "Quiz selesai!\n\nScore: " +
             score + " / " + questions.Count;
+
+        // Pesan hasil
+        if (score >= questions.Count * 0.8f)
+        {
+            resultText.text = "Hebat!";
+            resultText.color = Color.green;
+        }
+        else
+        {
+            resultText.text = "Coba lagi!";
+            resultText.color = Color.yellow;
+        }
 
         // Sembunyikan tombol jawaban
         foreach (Button btn in answerButtons)
