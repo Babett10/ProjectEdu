@@ -53,7 +53,7 @@ public class FirebaseController : MonoBehaviour
         {
             Debug.Log("User masih login: " + user.Email);
             CheckUserRoleAndRedirect(user.UserId);
-            SceneManager.LoadScene("MainMenu");
+            SceneManager.LoadScene("MainMenu_fixed_fixed");
         }
         else
         {
@@ -200,17 +200,17 @@ public class FirebaseController : MonoBehaviour
                 if (role == "guru")
                 {
                     Debug.Log("Login sebagai Guru");
-                    SceneManager.LoadScene("MainMenu");
+                    SceneManager.LoadScene("MainMenu_fixed");
                 }
                 else
                 {
                     Debug.Log("Login sebagai Siswa");
-                    SceneManager.LoadScene("MainMenu");
+                    SceneManager.LoadScene("MainMenu_fixed");
                 }
             }
             else
             {
-                SceneManager.LoadScene("MainMenu");
+                SceneManager.LoadScene("MainMenu_fixed");
             }
         });
 
