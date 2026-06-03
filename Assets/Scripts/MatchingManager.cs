@@ -14,8 +14,22 @@ public class MatchingManager : MonoBehaviour
 
     private float timer = 0f;
     private bool gameFinished = false;
-
     private int matchedCount = 0;
+
+    // Posisi spawn asli item
+    private List<Vector3> originalPositions =
+        new List<Vector3>();
+
+    void Start()
+    {
+        // Simpan posisi awal item
+        foreach (GameObject item in draggableItems)
+        {
+            originalPositions.Add(item.transform.position);
+        }
+
+        ResetGame();
+    }
 
     void Update()
     {
@@ -28,7 +42,6 @@ public class MatchingManager : MonoBehaviour
         }
     }
 
-    // ✅ Dipanggil saat jawaban cocok
     public void AddMatch(GameObject item)
     {
         matchedCount++;
@@ -39,7 +52,6 @@ public class MatchingManager : MonoBehaviour
         }
     }
 
-    // 🏁 Finish
     void FinishGame()
     {
         gameFinished = true;
@@ -47,26 +59,18 @@ public class MatchingManager : MonoBehaviour
         int score = CalculateScore();
 
         scoreText.text = "Score : " + score;
-
         resultText.text = "Selesai!";
     }
 
-    // 🎯 Score berdasarkan waktu
     int CalculateScore()
     {
-        if (timer <= 10)
-            return 100;
-
-        if (timer <= 20)
-            return 80;
-
-        if (timer <= 30)
-            return 60;
+        if (timer <= 10) return 100;
+        if (timer <= 20) return 80;
+        if (timer <= 30) return 60;
 
         return 40;
     }
 
-    // 🔄 Reset game
     public void ResetGame()
     {
         timer = 0f;
@@ -80,27 +84,33 @@ public class MatchingManager : MonoBehaviour
 
         foreach (GameObject item in draggableItems)
         {
-            item.GetComponent<DragItem>().enabled = true;
-            item.GetComponent<DragItem>().ResetPosition();
+            DragItem dragItem =
+                item.GetComponent<DragItem>();
+
+            dragItem.ResetItem();
         }
     }
 
-    // 🔀 Random posisi item
     void ShuffleItems()
     {
-        for (int i = 0; i < draggableItems.Count; i++)
+        // Copy posisi asli
+        List<Vector3> availablePositions =
+            new List<Vector3>(originalPositions);
+
+        foreach (GameObject item in draggableItems)
         {
             int randomIndex =
-                Random.Range(i, draggableItems.Count);
+                Random.Range(0, availablePositions.Count);
 
-            Vector3 temp =
-                draggableItems[i].transform.position;
+            Vector3 randomPos =
+                availablePositions[randomIndex];
 
-            draggableItems[i].transform.position =
-                draggableItems[randomIndex].transform.position;
+            item.transform.position = randomPos;
 
-            draggableItems[randomIndex].transform.position =
-                temp;
+            item.GetComponent<DragItem>()
+                .SetStartPosition(randomPos);
+
+            availablePositions.RemoveAt(randomIndex);
         }
     }
 }

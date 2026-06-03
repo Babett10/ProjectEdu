@@ -4,7 +4,6 @@ using UnityEngine.EventSystems;
 public class DropSlot : MonoBehaviour, IDropHandler
 {
     public string correctID;
-
     public MatchingManager manager;
 
     public void OnDrop(PointerEventData eventData)
@@ -12,20 +11,22 @@ public class DropSlot : MonoBehaviour, IDropHandler
         DragItem item =
             eventData.pointerDrag.GetComponent<DragItem>();
 
-        if (item != null)
+        if (item == null) return;
+
+        // Jawaban benar
+        if (item.itemID == correctID)
         {
-            if (item.itemID == correctID)
-            {
-                item.transform.position = transform.position;
+            item.transform.position = transform.position;
 
-                manager.AddMatch(item.gameObject);
+            manager.AddMatch(item.gameObject);
 
-                item.enabled = false;
-            }
-            else
-            {
-                item.ResetPosition();
-            }
+            // Matikan drag setelah benar
+            item.enabled = false;
+        }
+        // Jawaban salah
+        else
+        {
+            item.ResetItem();
         }
     }
 }
