@@ -53,7 +53,7 @@ public class FirebaseController : MonoBehaviour
         {
             Debug.Log("User masih login: " + user.Email);
             CheckUserRoleAndRedirect(user.UserId);
-            SceneManager.LoadScene("MainMenu_fixed_fixed");
+            SceneManager.LoadScene("MainMenu_fixed");
         }
         else
         {
@@ -280,8 +280,5 @@ public class FirebaseController : MonoBehaviour
         DBreference.Child("Users").Child(uid).Child("email").SetValueAsync(email);
         DBreference.Child("Users").Child(uid).Child("kelas").SetValueAsync(kelas);
         DBreference.Child("Users").Child(uid).Child("role").SetValueAsync(role);
-
-        DBreference.Child("Users").Child(uid).Child("level").SetValueAsync(1);
-        DBreference.Child("Users").Child(uid).Child("gold").SetValueAsync(0);
     }
 }

@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using Firebase.Auth;
+using Firebase.Database;
+using Firebase.Extensions;
 
 public class QuizManager : MonoBehaviour
 {
@@ -18,14 +21,14 @@ public class QuizManager : MonoBehaviour
     private int currentQuestionIndex = 0;
     private int score = 0;
 
+    FirebaseAuth auth;
+    DatabaseReference DBreference;
+
     void Start()
     {
-        LoadDummyQuestions();
-
-        // 🔥 Acak soal
-        ShuffleQuestions();
-
-        ShowQuestion();
+        auth = FirebaseAuth.DefaultInstance;
+        DBreference = FirebaseDatabase.DefaultInstance.RootReference;
+        LoadQuestionFromDatabase();
     }
 
     // 🔄 Reset quiz
@@ -47,78 +50,51 @@ public class QuizManager : MonoBehaviour
         ShowQuestion();
     }
 
-    // 🔥 Dummy data sementara
-    void LoadDummyQuestions()
+    void LoadQuestionFromDatabase()
     {
-        questions.Add(new QuestionData
+        DBreference.Child("Quiz")
+    .GetValueAsync()
+    .ContinueWithOnMainThread(task =>
+    {
+        if (task.IsFaulted)
         {
-            id = "1",
-            question = "Apa yang dimaksud dengan literasi digital?",
-            answers = new List<string>
-            {
-                "Kemampuan menggunakan perangkat elektronik saja",
-                "Kemampuan membaca dan menulis di internet",
-                "Kemampuan memahami, menggunakan, dan mengevaluasi informasi digital",
-                "Kemampuan bermain media sosial"
-            },
-            correctAnswer = 2
-        });
+            Debug.LogError(task.Exception);
+            return;
+        }
 
-        questions.Add(new QuestionData
-        {
-            id = "2",
-            question = "Apa tujuan utama dari literasi digital?",
-            answers = new List<string>
-            {
-                "Menjadi terkenal di media sosial",
-                "Menghindari penggunaan teknologi",
-                "Menggunakan teknologi secara bijak dan bertanggung jawab",
-                "Menguasai semua aplikasi"
-            },
-            correctAnswer = 2
-        });
+        questions.Clear();
 
-        questions.Add(new QuestionData
-        {
-            id = "3",
-            question = "Apa yang dimaksud dengan jejak digital (digital footprint)?",
-            answers = new List<string>
-            {
-                "Data yang tersimpan di komputer saja",
-                "Aktivitas pengguna di dunia digital yang terekam",
-                "File yang dihapus dari perangkat",
-                "Aplikasi yang digunakan"
-            },
-            correctAnswer = 1
-        });
+        DataSnapshot snapshot = task.Result;
 
-        questions.Add(new QuestionData
+        foreach (DataSnapshot quizSnapshot in snapshot.Children)
         {
-            id = "4",
-            question = "Manakah yang termasuk pelanggaran etika digital?",
-            answers = new List<string>
-            {
-                "Mengutip sumber dengan benar",
-                "Menggunakan kata-kata sopan",
-                "Menyebarkan konten tanpa izin pemilik",
-                "Memberikan kritik yang membangun"
-            },
-            correctAnswer = 2
-        });
+            QuestionData question = new QuestionData();
 
-        questions.Add(new QuestionData
-        {
-            id = "5",
-            question = "Jika seseorang menemukan informasi yang meragukan di internet, tindakan yang tepat adalah…",
-            answers = new List<string>
+            question.id = quizSnapshot.Key;
+
+            question.question =
+                quizSnapshot.Child("question").Value.ToString();
+
+            question.correctAnswer =
+                int.Parse(
+                    quizSnapshot.Child("correctAnswer")
+                    .Value.ToString());
+
+            question.answers = new List<string>();
+
+            foreach (DataSnapshot answer in
+                     quizSnapshot.Child("answers").Children)
             {
-                "Menyebarkannya agar cepat viral",
-                "Menghapus akun media sosial",
-                "Memverifikasi kebenaran informasi tersebut",
-                "Mengabaikan semua informasi"
-            },
-            correctAnswer = 2
-        });
+                question.answers.Add(
+                    answer.Value.ToString());
+            }
+
+            questions.Add(question);
+        }
+
+        ShuffleQuestions();
+        ShowQuestion();
+    });
     }
 
     // 🔀 Random urutan soal
@@ -222,5 +198,82 @@ public class QuizManager : MonoBehaviour
         {
             btn.gameObject.SetActive(false);
         }
+
+        SaveQuizResults();
+    }
+
+    void SaveQuizResults()
+    {
+        FirebaseUser user = auth.CurrentUser;
+
+        if (user == null)
+        {
+            Debug.LogError("User tidak ditemukan");
+            return;
+        }
+
+        int percentage = Mathf.RoundToInt(
+            ((float)score / questions.Count) * 100);
+
+        string resultId =
+            DBreference.Child("QuizResults")
+            .Child(user.UserId)
+            .Push()
+            .Key;
+
+        DBreference.Child("Users")
+        .Child(user.UserId)
+        .GetValueAsync()
+        .ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted)
+            {
+                DataSnapshot snapshot = task.Result;
+
+                string username =
+                    snapshot.Child("username").Value.ToString();
+
+                string kelas =
+                    snapshot.Child("kelas").Value.ToString();
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("username")
+                .SetValueAsync(username);
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("kelas")
+                .SetValueAsync(kelas);
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("score")
+                .SetValueAsync(score);
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("totalQuestion")
+                .SetValueAsync(questions.Count);
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("percentage")
+                .SetValueAsync(percentage);
+
+                DBreference.Child("QuizResults")
+                .Child(user.UserId)
+                .Child(resultId)
+                .Child("date")
+                .SetValueAsync(System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                Debug.Log("Quiz Result Saved");
+            }
+        });
     }
 }
